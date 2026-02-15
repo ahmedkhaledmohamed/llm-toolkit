@@ -1,40 +1,157 @@
 """
 Styles for Google Docs output.
 
-To customize: edit the STYLES dict below, or create ~/.llmtk/styles.json
-with any keys you want to override. Example:
+Two layers of styling:
+  1. HTML/CSS — applied during Drive API import (Phase 1)
+  2. Docs API — applied via batchUpdate after creation (Phase 2)
 
-    {"font_family": "Georgia, serif", "body_font_size": "12pt"}
+To customize: create ~/.llmtk/styles.json with any keys you want to
+override.  Only include keys you want to change — the rest use defaults.
 
-Only include keys you want to change — the rest use defaults.
+Example ~/.llmtk/styles.json:
+    {
+        "body": {"font": "Georgia", "size": 12},
+        "headings": {"h1": {"font": "Georgia", "size": 26}},
+        "layout": {"pageless": true}
+    }
 """
 
 import json
 from pathlib import Path
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Default styles
+# Layout defaults
 # ─────────────────────────────────────────────────────────────────────────────
+#   Units: Points (72pt = 1 inch).  Letter = 612 × 792 pt.
 #
-#   font_family      Body text font (Google Docs supports: Arial, Roboto,
-#                    Times New Roman, Georgia, Verdana, Courier New, etc.)
-#   code_font        Font for code blocks and inline code
-#   body_font_size   Base font size (e.g., "11pt", "12pt")
-#   body_line_height Line spacing multiplier (1.5 = 150%)
-#   body_color       Main text color (hex)
-#   heading_color    H1-H6 color (hex)
-#   code_bg          Code block background color
-#   code_border      Code block border color
-#   code_color       Code text color
-#   blockquote_border Blockquote left border color
-#   blockquote_color Blockquote text color
-#   link_color       Hyperlink color
-#   table_border     Table border color
-#   table_header_bg  Table header row background
-#   table_alt_bg     Alternating table row background (unused by GDocs import)
-#   hr_color         Horizontal rule color
+#   pageless:  When True, sets an extremely tall page to simulate pageless
+#              mode (the Docs API has no native pageless flag).
+#   margins:   Document margins in points.
 
-STYLES = {
+LAYOUT = {
+    "pageless": True,
+    "margins": {
+        "top": 36,       # 0.5 inch
+        "bottom": 36,
+        "left": 54,      # 0.75 inch
+        "right": 54,
+    },
+    # Standard Letter dimensions; overridden when pageless is True.
+    "page_width": 612,
+    "page_height": 792,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Heading styles  (applied via Docs API Phase 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+HEADINGS = {
+    "h1": {
+        "font": "Inter",
+        "size": 24,
+        "color": "#111111",
+        "bold": True,
+        "space_before": 20,
+        "space_after": 6,
+    },
+    "h2": {
+        "font": "Inter",
+        "size": 18,
+        "color": "#111111",
+        "bold": True,
+        "space_before": 16,
+        "space_after": 4,
+    },
+    "h3": {
+        "font": "Inter",
+        "size": 14,
+        "color": "#333333",
+        "bold": True,
+        "space_before": 12,
+        "space_after": 4,
+    },
+    "h4": {
+        "font": "Inter",
+        "size": 12,
+        "color": "#333333",
+        "bold": True,
+        "space_before": 10,
+        "space_after": 2,
+    },
+    "h5": {
+        "font": "Inter",
+        "size": 11,
+        "color": "#555555",
+        "bold": True,
+        "space_before": 8,
+        "space_after": 2,
+    },
+    "h6": {
+        "font": "Inter",
+        "size": 10,
+        "color": "#6a737d",
+        "bold": True,
+        "space_before": 8,
+        "space_after": 2,
+    },
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Body / paragraph defaults  (applied via Docs API Phase 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+BODY = {
+    "font": "Inter",
+    "size": 11,
+    "color": "#1a1a1a",
+    "line_spacing": 1.15,     # multiplier (115%)
+    "space_after": 6,         # pt after each paragraph
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Code block defaults  (applied via Docs API Phase 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+CODE = {
+    "font": "Roboto Mono",
+    "size": 9.5,
+    "color": "#24292e",
+    "background": "#f6f8fa",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Table defaults  (applied via Docs API Phase 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+TABLE = {
+    "header_background": "#f6f8fa",
+    "header_bold": True,
+    "cell_padding": 4,          # pt
+    "border_color": "#d0d7de",
+    "border_width": 0.5,        # pt
+    "font_size": 9,
+    "pin_header_rows": True,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Blockquote defaults  (applied via Docs API Phase 2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+BLOCKQUOTE = {
+    "color": "#6a737d",
+    "italic": True,
+    "indent": 36,               # pt left indent
+    "space_before": 4,
+    "space_after": 4,
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy CSS variables  (used in Phase 1 HTML template)
+# ─────────────────────────────────────────────────────────────────────────────
+#   These control the HTML/CSS sent to the Drive API import.
+#   They provide reasonable initial styling that Phase 2 refines.
+
+CSS_VARS = {
     "font_family": "'Inter', 'Helvetica Neue', Arial, sans-serif",
     "code_font": "'Roboto Mono', 'SF Mono', 'Consolas', monospace",
     "body_font_size": "11pt",
@@ -53,20 +170,9 @@ STYLES = {
     "hr_color": "#d0d7de",
 }
 
-# Page layout applied via Docs API after creation.
-# Google Docs API doesn't support true "pageless" mode, so we use tight
-# margins to approximate it. Set to None to skip page style adjustment.
-# Units: Points (72pt = 1 inch).
-PAGE_STYLE = {
-    "margin_top": 36,      # 0.5 inch
-    "margin_bottom": 36,
-    "margin_left": 36,
-    "margin_right": 36,
-}
-
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HTML template
+# HTML template  (Phase 1 — sent to Drive API as import)
 # ─────────────────────────────────────────────────────────────────────────────
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -178,17 +284,63 @@ img {{
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Style loading
+# Style loading — merges defaults with user overrides
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _deep_merge(base: dict, overrides: dict) -> dict:
+    """Recursively merge overrides into base dict."""
+    result = base.copy()
+    for key, value in overrides.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 def get_styles() -> dict:
-    """Return styles with user overrides applied from ~/.llmtk/styles.json."""
-    styles = STYLES.copy()
+    """Return the complete style configuration with user overrides applied.
+
+    Loads ~/.llmtk/styles.json and deep-merges into defaults.
+    Returns a dict with keys: layout, headings, body, code, table,
+    blockquote, css_vars.
+    """
+    styles = {
+        "layout": LAYOUT.copy(),
+        "headings": {k: v.copy() for k, v in HEADINGS.items()},
+        "body": BODY.copy(),
+        "code": CODE.copy(),
+        "table": TABLE.copy(),
+        "blockquote": BLOCKQUOTE.copy(),
+        "css_vars": CSS_VARS.copy(),
+    }
+
     override_file = Path.home() / '.llmtk' / 'styles.json'
     if override_file.exists():
         try:
             overrides = json.loads(override_file.read_text())
-            styles.update(overrides)
+            styles = _deep_merge(styles, overrides)
         except (json.JSONDecodeError, OSError):
             pass  # silently fall back to defaults
+
     return styles
+
+
+def get_css_vars() -> dict:
+    """Return only CSS template variables (for Phase 1 HTML generation)."""
+    return get_styles()["css_vars"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers for Docs API color conversion
+# ─────────────────────────────────────────────────────────────────────────────
+
+def hex_to_rgb(hex_color: str) -> dict:
+    """Convert '#RRGGBB' to Docs API RgbColor dict (0.0-1.0 floats)."""
+    hex_color = hex_color.lstrip('#')
+    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+    return {
+        "red": r / 255.0,
+        "green": g / 255.0,
+        "blue": b / 255.0,
+    }
