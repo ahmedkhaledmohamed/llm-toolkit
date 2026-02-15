@@ -449,13 +449,14 @@ def _build_table_requests(element: dict, styles: dict) -> list:
     if not table_cfg:
         return []
 
+    table_start = element.get('startIndex', 0)
     rows = table.get('tableRows', [])
 
     for row_idx, row in enumerate(rows):
         cells = row.get('tableCells', [])
         is_header = (row_idx == 0)
 
-        for cell in cells:
+        for col_idx, cell in enumerate(cells):
             cell_start = cell.get('startIndex', 0)
             cell_end = cell.get('endIndex', cell_start)
 
@@ -499,11 +500,14 @@ def _build_table_requests(element: dict, styles: dict) -> list:
             if cell_style:
                 requests.append({
                     'updateTableCellStyle': {
-                        'tableStartLocation': {'index': element.get('startIndex', 0)},
-                        'tableCellLocation': {
-                            'tableStartLocation': {'index': element.get('startIndex', 0)},
-                            'rowIndex': row_idx,
-                            'columnIndex': cells.index(cell),
+                        'tableRange': {
+                            'tableCellLocation': {
+                                'tableStartLocation': {'index': table_start},
+                                'rowIndex': row_idx,
+                                'columnIndex': col_idx,
+                            },
+                            'rowSpan': 1,
+                            'columnSpan': 1,
                         },
                         'tableCellStyle': cell_style,
                         'fields': ','.join(cell_fields),
@@ -546,7 +550,7 @@ def _build_table_requests(element: dict, styles: dict) -> list:
     if table_cfg.get('pin_header_rows') and rows:
         requests.append({
             'pinTableHeaderRows': {
-                'tableStartLocation': {'index': element.get('startIndex', 0)},
+                'tableStartLocation': {'index': table_start},
                 'pinnedHeaderRowsCount': 1,
             }
         })
