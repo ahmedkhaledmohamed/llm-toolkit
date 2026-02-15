@@ -9,36 +9,37 @@ CLI: `llmtk` — bridge LLM-generated content to traditional formats.
 
 ## Commands
 
-Push markdown to Google Doc:
-
 ```bash
 llmtk gdoc push <file.md> --title "Title" --folder "Folder"
 llmtk gdoc push --stdin --title "Title" < file.md
-```
-
-Pull comments as markdown:
-
-```bash
-llmtk gdoc pull <google-doc-url-or-id>
-```
-
-List created docs:
-
-```bash
+llmtk gdoc pull "<google-doc-url-or-id>"
 llmtk gdoc list
 ```
 
-## Workflow
+Always quote URLs (they contain `?` which zsh interprets).
 
-**Sharing**: Save content as `.md` -> run push -> return URL.
+## Pull Output Format
 
-**Feedback**: Run pull with doc URL -> read comments -> apply to original file.
+```
+## Feedback from: Doc Title
+> Pulled: 2026-02-15 from https://docs.google.com/...
+
+### Open Comments
+- **Author** (on "quoted text..."): "comment" [open]
+  - **Author** replied: "reply"
+```
+
+## Workflows
+
+**Sharing**: Save content as `.md` → run push → return URL.
+
+**Feedback round-trip**:
+1. Run `llmtk gdoc pull "<url>"` to get comments
+2. For each open comment, find the quoted text in the original file and apply the feedback
+3. Summarize changes made
+4. Offer to re-push as an updated version
 
 ## Setup
 
-Requires `~/.llmtk/credentials.json` (Google OAuth 2.0 Desktop).
-First run opens browser for consent. Needs Drive API + Docs API enabled.
-
-```bash
-pip install llm-toolkit
-```
+`pip install llm-toolkit`. Requires `~/.llmtk/credentials.json` (Google OAuth).
+Enable Drive API + Docs API in GCP project. First run opens browser for consent.

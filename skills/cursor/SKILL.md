@@ -11,8 +11,6 @@ CLI tool `llmtk` bridges LLM-generated content to traditional formats.
 
 ### Push: MD to Google Doc
 
-Save content as a `.md` file, then:
-
 ```bash
 llmtk gdoc push <file.md> --title "Title" --folder "Folder"
 llmtk gdoc push --stdin --title "Title"
@@ -22,32 +20,67 @@ llmtk gdoc push --stdin --title "Title"
 - `--folder` finds or creates a Drive folder (optional)
 - `--stdin` reads markdown from stdin
 - Returns the Google Doc URL
-
-**Workflow — "make this shareable":**
-
-1. Write final content to a clean `.md` file
-2. Run push with a descriptive title
-3. Return the URL to the user
+- Always quote URLs in commands (they contain `?` which zsh interprets)
 
 ### Pull: Get Feedback as Markdown
 
 ```bash
-llmtk gdoc pull <google-doc-url-or-id>
+llmtk gdoc pull "<google-doc-url-or-id>"
 ```
 
-Returns structured markdown with all comments (open + resolved), quoted text, authors, and replies.
+Returns structured markdown like:
 
-**Workflow — "incorporate feedback":**
+```
+## Feedback from: Q1 Analysis
+> Pulled: 2026-02-15 07:41 from https://docs.google.com/...
 
-1. Run pull with the doc URL
-2. Read the comment output
-3. Apply each piece of feedback to the original file
-4. Offer to push an updated version
+### Open Comments
+- **John Smith** (on "reduced latency by 40%"): "Can you add the baseline number?" [open]
+  - **Sarah Lee** replied: "agreed, we need the before/after"
+- **Sarah Lee** (on "team allocation"): "Missing the infra team" [open]
+
+### Resolved Comments
+- **John Smith** (on "P99 at 187ms"): "Looks good" [resolved]
+```
 
 ### List Created Docs
 
 ```bash
 llmtk gdoc list
+```
+
+## Workflows
+
+### "Make this shareable" / "Push to Google Docs"
+
+1. Save the content as a clean `.md` file (strip internal notes, draft markers)
+2. Run `llmtk gdoc push <file> --title "Descriptive Title" --folder "Folder"`
+3. Return the Google Doc URL to the user
+
+### "Incorporate feedback" / "Pull comments"
+
+1. Ask the user for the Google Doc URL (or check `llmtk gdoc list` for recent docs)
+2. Run `llmtk gdoc pull "<url>"` and capture the output
+3. For each open comment:
+   - Find the quoted text in the original markdown file
+   - Apply the feedback (edit, add detail, restructure as requested)
+   - Note what was changed
+4. Present a summary of changes made
+5. Ask if the user wants to push the updated version back: `llmtk gdoc push <file> --title "Title (v2)"`
+
+### Full round-trip example
+
+```
+User: "make this shareable"
+→ Save to analysis.md
+→ llmtk gdoc push analysis.md --title "Q1 Analysis" --folder "Work"
+→ Return URL
+
+User: "incorporate the feedback from that doc"
+→ llmtk gdoc pull "<url>"
+→ Read comments, apply each to analysis.md
+→ Show changes summary
+→ Offer to re-push as "Q1 Analysis (v2)"
 ```
 
 ## Setup
