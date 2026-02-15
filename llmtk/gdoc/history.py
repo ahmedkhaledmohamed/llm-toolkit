@@ -1,5 +1,7 @@
 """Track created Google Docs for the `list` command."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from datetime import datetime
@@ -26,6 +28,29 @@ def save(doc_id: str, title: str, source: str, url: str):
 
     with open(HISTORY_FILE, 'w') as f:
         json.dump(history, f, indent=2)
+
+
+def find_by_id(doc_id: str) -> str | None:
+    """Look up the original source file path for a doc ID.
+
+    Returns:
+        The source path if found and it was a file (not stdin), else None.
+    """
+    if not HISTORY_FILE.exists():
+        return None
+
+    with open(HISTORY_FILE) as f:
+        history = json.load(f)
+
+    # Search from most recent to oldest
+    for entry in reversed(history):
+        if entry.get('id') == doc_id:
+            source = entry.get('source', '')
+            if source and source != 'stdin':
+                return source
+            return None
+
+    return None
 
 
 def list_all():
