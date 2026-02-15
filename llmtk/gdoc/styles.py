@@ -24,8 +24,8 @@ from pathlib import Path
 # ─────────────────────────────────────────────────────────────────────────────
 #   Units: Points (72pt = 1 inch).  Letter = 612 × 792 pt.
 #
-#   pageless:  When True, sets an extremely tall page to simulate pageless
-#              mode (the Docs API has no native pageless flag).
+#   pageless:  When True, sets document to pageless mode via the Docs API
+#              documentFormat.documentMode field (continuous scroll, no pages).
 #   margins:   Document margins in points.
 
 LAYOUT = {
@@ -51,48 +51,48 @@ HEADINGS = {
         "size": 24,
         "color": "#111111",
         "bold": True,
-        "space_before": 20,
-        "space_after": 6,
+        "space_before": 14,
+        "space_after": 2,
     },
     "h2": {
         "font": "Inter",
         "size": 18,
         "color": "#111111",
         "bold": True,
-        "space_before": 16,
-        "space_after": 4,
+        "space_before": 12,
+        "space_after": 2,
     },
     "h3": {
         "font": "Inter",
         "size": 14,
         "color": "#333333",
         "bold": True,
-        "space_before": 12,
-        "space_after": 4,
+        "space_before": 10,
+        "space_after": 2,
     },
     "h4": {
         "font": "Inter",
         "size": 12,
         "color": "#333333",
         "bold": True,
-        "space_before": 10,
-        "space_after": 2,
+        "space_before": 8,
+        "space_after": 1,
     },
     "h5": {
         "font": "Inter",
         "size": 11,
         "color": "#555555",
         "bold": True,
-        "space_before": 8,
-        "space_after": 2,
+        "space_before": 6,
+        "space_after": 1,
     },
     "h6": {
         "font": "Inter",
         "size": 10,
         "color": "#6a737d",
         "bold": True,
-        "space_before": 8,
-        "space_after": 2,
+        "space_before": 6,
+        "space_after": 1,
     },
 }
 
@@ -105,7 +105,7 @@ BODY = {
     "size": 11,
     "color": "#1a1a1a",
     "line_spacing": 1.15,     # multiplier (115%)
-    "space_after": 6,         # pt after each paragraph
+    "space_after": 3,         # pt after each paragraph
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ CODE = {
 TABLE = {
     "header_background": "#f6f8fa",
     "header_bold": True,
-    "cell_padding": 4,          # pt
+    "cell_padding": 2,          # pt
     "border_color": "#d0d7de",
     "border_width": 0.5,        # pt
     "font_size": 9,

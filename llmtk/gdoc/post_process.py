@@ -32,9 +32,8 @@ _HEADING_MAP = {
     "HEADING_6": "h6",
 }
 
-# Height for pageless simulation (very tall single page).
-# 100,000 pt ≈ 1,389 inches ≈ 35 metres — enough for any document.
-_PAGELESS_HEIGHT = 100000
+# The documentFormat.documentMode field (undocumented in the official API
+# reference but present in the API) supports "PAGELESS" and "PAGES" modes.
 
 
 def post_process(creds, doc_id: str):
@@ -91,7 +90,7 @@ def post_process(creds, doc_id: str):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_document_style_requests(styles: dict) -> list:
-    """Build updateDocumentStyle requests for layout/margins/pageless."""
+    """Build updateDocumentStyle requests for layout, margins, and page mode."""
     layout = styles.get("layout", {})
     margins = layout.get("margins", {})
     pageless = layout.get("pageless", False)
@@ -99,7 +98,25 @@ def _build_document_style_requests(styles: dict) -> list:
     doc_style = {}
     fields = []
 
-    # Margins
+    # Document mode: PAGELESS or PAGES
+    if pageless:
+        doc_style['documentFormat'] = {'documentMode': 'PAGELESS'}
+        fields.append('documentFormat')
+    else:
+        doc_style['documentFormat'] = {'documentMode': 'PAGES'}
+        fields.append('documentFormat')
+
+        # Page size only applies in paged mode
+        page_width = layout.get("page_width")
+        page_height = layout.get("page_height")
+        if page_width and page_height:
+            doc_style['pageSize'] = {
+                'width': {'magnitude': page_width, 'unit': 'PT'},
+                'height': {'magnitude': page_height, 'unit': 'PT'},
+            }
+            fields.append('pageSize')
+
+    # Margins apply in both modes
     if margins.get("top") is not None:
         doc_style['marginTop'] = {'magnitude': margins['top'], 'unit': 'PT'}
         fields.append('marginTop')
@@ -112,19 +129,6 @@ def _build_document_style_requests(styles: dict) -> list:
     if margins.get("right") is not None:
         doc_style['marginRight'] = {'magnitude': margins['right'], 'unit': 'PT'}
         fields.append('marginRight')
-
-    # Page size (pageless = very tall page)
-    page_width = layout.get("page_width", 612)
-    if pageless:
-        page_height = _PAGELESS_HEIGHT
-    else:
-        page_height = layout.get("page_height", 792)
-
-    doc_style['pageSize'] = {
-        'width': {'magnitude': page_width, 'unit': 'PT'},
-        'height': {'magnitude': page_height, 'unit': 'PT'},
-    }
-    fields.append('pageSize')
 
     if not fields:
         return []
@@ -154,6 +158,20 @@ def _build_paragraph_requests(element: dict, styles: dict) -> list:
     # Skip empty paragraphs
     if start_index >= end_index:
         return []
+
+    # Check if paragraph contains a horizontal rule
+    if _contains_horizontal_rule(para):
+        requests.append({
+            'updateParagraphStyle': {
+                'range': {'startIndex': start_index, 'endIndex': end_index},
+                'paragraphStyle': {
+                    'spaceAbove': {'magnitude': 2, 'unit': 'PT'},
+                    'spaceBelow': {'magnitude': 2, 'unit': 'PT'},
+                },
+                'fields': 'spaceAbove,spaceBelow',
+            }
+        })
+        return requests
 
     # Determine which style config to use
     if named_style in _HEADING_MAP:
@@ -193,6 +211,14 @@ def _build_paragraph_requests(element: dict, styles: dict) -> list:
                 )
 
     return requests
+
+
+def _contains_horizontal_rule(para: dict) -> bool:
+    """Check if a paragraph contains a horizontal rule element."""
+    for elem in para.get('elements', []):
+        if 'horizontalRule' in elem:
+            return True
+    return False
 
 
 def _get_text_runs(para: dict) -> list:
