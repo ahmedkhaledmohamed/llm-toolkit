@@ -7,7 +7,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaInMemoryUpload
 
 from .auth import get_credentials
-from .styles import HTML_TEMPLATE, PAGE_STYLE, get_styles
+from .styles import HTML_TEMPLATE, get_css_vars
+from .post_process import post_process
 from . import history
 
 
@@ -21,8 +22,8 @@ def md_to_html(md_content: str) -> str:
     ]
 
     html_body = md_lib.markdown(md_content, extensions=extensions)
-    styles = get_styles()
-    return HTML_TEMPLATE.format(content=html_body, **styles)
+    css_vars = get_css_vars()
+    return HTML_TEMPLATE.format(content=html_body, **css_vars)
 
 
 def push_to_gdoc(md_content: str, title: str, folder: str = None, source: str = "stdin"):
@@ -37,7 +38,7 @@ def push_to_gdoc(md_content: str, title: str, folder: str = None, source: str = 
     if folder:
         parent_id = _find_or_create_folder(drive, folder)
 
-    # Upload HTML as Google Doc
+    # Upload HTML as Google Doc (Phase 1 — CSS-based styling)
     file_metadata = {
         'name': title,
         'mimeType': 'application/vnd.google-apps.document',
@@ -60,9 +61,8 @@ def push_to_gdoc(md_content: str, title: str, folder: str = None, source: str = 
     doc_url = result.get('webViewLink')
     doc_id = result.get('id')
 
-    # Apply page style (tight margins for near-pageless look)
-    if PAGE_STYLE:
-        _apply_page_style(creds, doc_id)
+    # Phase 2 — Docs API post-processing (layout, heading styles, tables)
+    post_process(creds, doc_id)
 
     history.save(doc_id, title, source, doc_url)
 
@@ -70,30 +70,6 @@ def push_to_gdoc(md_content: str, title: str, folder: str = None, source: str = 
     print(f"URL: {doc_url}")
 
     return doc_id, doc_url
-
-
-def _apply_page_style(creds, doc_id: str):
-    """Set page margins via Docs API for a near-pageless layout."""
-    try:
-        docs = build('docs', 'v1', credentials=creds)
-        docs.documents().batchUpdate(
-            documentId=doc_id,
-            body={
-                'requests': [{
-                    'updateDocumentStyle': {
-                        'documentStyle': {
-                            'marginTop': {'magnitude': PAGE_STYLE['margin_top'], 'unit': 'PT'},
-                            'marginBottom': {'magnitude': PAGE_STYLE['margin_bottom'], 'unit': 'PT'},
-                            'marginLeft': {'magnitude': PAGE_STYLE['margin_left'], 'unit': 'PT'},
-                            'marginRight': {'magnitude': PAGE_STYLE['margin_right'], 'unit': 'PT'},
-                        },
-                        'fields': 'marginTop,marginBottom,marginLeft,marginRight',
-                    }
-                }]
-            }
-        ).execute()
-    except Exception as e:
-        print(f"Warning: Could not set page style: {e}", file=sys.stderr)
 
 
 def _find_or_create_folder(drive, folder_name: str) -> str:
