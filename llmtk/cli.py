@@ -6,6 +6,8 @@ Usage:
     llmtk gdoc pull <doc-url>
     llmtk gdoc pull-content <doc-url> [--output file.md] [--update]
     llmtk gdoc list
+    llmtk diagram <file.md> [--format png|svg] [--output-dir DIR] [--inline]
+    llmtk diagram --stdin --type mermaid [--format png] [--output file.png]
 """
 
 import argparse
@@ -87,6 +89,59 @@ def _handle_gdoc(args):
         sys.exit(1)
 
 
+def _register_diagram(subparsers):
+    """Register the `diagram` tool."""
+    diagram = subparsers.add_parser(
+        'diagram',
+        help='Render diagram code blocks (mermaid, plantuml, graphviz, d2) to images',
+    )
+    diagram.add_argument('file', nargs='?', help='Markdown file containing diagram code blocks')
+    diagram.add_argument('--stdin', action='store_true',
+                         help='Read raw diagram source from stdin (requires --type)')
+    diagram.add_argument('--type', '-T', dest='diagram_type',
+                         help='Diagram type for stdin mode (mermaid, plantuml, graphviz, d2, ...)')
+    diagram.add_argument('--format', '-f', default='png', choices=['png', 'svg'],
+                         help='Output image format (default: png)')
+    diagram.add_argument('--output-dir', '-d',
+                         help='Directory to save images (default: same as input file)')
+    diagram.add_argument('--output', '-o',
+                         help='Output file path (stdin mode only)')
+    diagram.add_argument('--inline', '-i', action='store_true',
+                         help='Replace code blocks with image references in the source file')
+
+
+def _handle_diagram(args):
+    """Handle diagram subcommand."""
+    from llmtk.diagram.render import render_diagrams, render_stdin
+
+    if args.stdin:
+        if not args.diagram_type:
+            print("--type is required with --stdin (e.g., --type mermaid)")
+            sys.exit(1)
+        source = sys.stdin.read()
+        if not source.strip():
+            print("No input received from stdin.")
+            sys.exit(1)
+        render_stdin(source, args.diagram_type, fmt=args.format, output=args.output)
+
+    elif args.file:
+        md_file = Path(args.file)
+        if not md_file.exists():
+            print(f"File not found: {args.file}")
+            sys.exit(1)
+        md_content = md_file.read_text(encoding='utf-8')
+        render_diagrams(
+            md_content,
+            source_path=str(md_file.resolve()),
+            fmt=args.format,
+            output_dir=args.output_dir,
+            inline=args.inline,
+        )
+    else:
+        print("Provide a file path or --stdin")
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='llmtk',
@@ -94,21 +149,26 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Tools:
-  gdoc    Markdown ↔ Google Docs (push, pull, pull-content, list)
+  gdoc      Markdown ↔ Google Docs (push, pull, pull-content, list)
+  diagram   Render diagram code blocks to images (mermaid, plantuml, graphviz, d2)
 
 Examples:
   llmtk gdoc push analysis.md --title "Q1 Analysis" --folder "Work"
   llmtk gdoc push --stdin --title "Quick Note"
   llmtk gdoc pull https://docs.google.com/document/d/1xABC.../edit
-  llmtk gdoc pull-content https://docs.google.com/document/d/1xABC.../edit
   llmtk gdoc pull-content <doc-id> --output analysis.md
-  llmtk gdoc pull-content <doc-id> --update
   llmtk gdoc list
+  llmtk diagram architecture.md
+  llmtk diagram architecture.md --format svg --output-dir ./images
+  llmtk diagram architecture.md --inline
+  echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
         """,
     )
 
     subparsers = parser.add_subparsers(dest='tool')
     _register_gdoc(subparsers)
+
+    _register_diagram(subparsers)
 
     # Add future tools here:
     # _register_slides(subparsers)
@@ -118,6 +178,8 @@ Examples:
 
     if args.tool == 'gdoc':
         _handle_gdoc(args)
+    elif args.tool == 'diagram':
+        _handle_diagram(args)
     else:
         parser.print_help()
         sys.exit(0)
