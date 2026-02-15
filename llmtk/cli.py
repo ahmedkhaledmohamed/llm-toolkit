@@ -4,6 +4,7 @@ Usage:
     llmtk gdoc push <file.md> [--title "Title"] [--folder "Folder"]
     llmtk gdoc push --stdin --title "Title"
     llmtk gdoc pull <doc-url>
+    llmtk gdoc pull-content <doc-url> [--output file.md] [--update]
     llmtk gdoc list
 """
 
@@ -29,6 +30,19 @@ def _register_gdoc(subparsers):
     pull = gdoc_sub.add_parser('pull', help='Pull comments from a Google Doc')
     pull.add_argument('doc', help='Google Doc URL or document ID')
 
+    # pull-content
+    pull_content = gdoc_sub.add_parser(
+        'pull-content', help='Export Google Doc content back as markdown'
+    )
+    pull_content.add_argument('doc', help='Google Doc URL or document ID')
+    pull_content.add_argument(
+        '--output', '-o', help='Write markdown to this file'
+    )
+    pull_content.add_argument(
+        '--update', '-u', action='store_true',
+        help='Overwrite the original source file (from push history)'
+    )
+
     # list
     gdoc_sub.add_parser('list', help='List recently created docs')
 
@@ -49,7 +63,7 @@ def _handle_gdoc(args):
                 sys.exit(1)
             md_content = md_file.read_text(encoding='utf-8')
             title = args.title or md_file.stem.replace('-', ' ').replace('_', ' ').title()
-            source = str(args.file)
+            source = str(md_file.resolve())
         else:
             print("Provide a file path or --stdin")
             sys.exit(1)
@@ -60,12 +74,16 @@ def _handle_gdoc(args):
         from llmtk.gdoc.pull import pull_comments
         pull_comments(args.doc)
 
+    elif args.gdoc_command == 'pull-content':
+        from llmtk.gdoc.pull_content import pull_content
+        pull_content(args.doc, output=args.output, update=args.update)
+
     elif args.gdoc_command == 'list':
         from llmtk.gdoc.history import list_all
         list_all()
 
     else:
-        print("Usage: llmtk gdoc {push|pull|list}")
+        print("Usage: llmtk gdoc {push|pull|pull-content|list}")
         sys.exit(1)
 
 
@@ -76,12 +94,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Tools:
-  gdoc    Markdown ↔ Google Docs (push, pull comments, list)
+  gdoc    Markdown ↔ Google Docs (push, pull, pull-content, list)
 
 Examples:
   llmtk gdoc push analysis.md --title "Q1 Analysis" --folder "Work"
   llmtk gdoc push --stdin --title "Quick Note"
   llmtk gdoc pull https://docs.google.com/document/d/1xABC.../edit
+  llmtk gdoc pull-content https://docs.google.com/document/d/1xABC.../edit
+  llmtk gdoc pull-content <doc-id> --output analysis.md
+  llmtk gdoc pull-content <doc-id> --update
   llmtk gdoc list
         """,
     )
