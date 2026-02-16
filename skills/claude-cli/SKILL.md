@@ -1,6 +1,6 @@
 ---
 name: llm-toolkit
-description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when asked to share a document, convert to Google Doc, push to gdoc, create a shareable version, pull comments, pull content back, render diagrams, or incorporate feedback from a shared doc.
+description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when asked to share a document, convert to Google Doc, push to gdoc, create a shareable version, pull comments, pull content back, render diagrams, ingest URLs/PDFs/HTML to markdown, or incorporate feedback from a shared doc.
 ---
 
 # LLM Toolkit
@@ -23,6 +23,12 @@ llmtk diagram <file.md>                        # render all diagram blocks to PN
 llmtk diagram <file.md> --format svg           # SVG output
 llmtk diagram <file.md> --inline               # replace code blocks with image refs
 echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
+
+# Ingest (World -> Markdown)
+llmtk ingest https://example.com/page -o page.md     # URL via Jina Reader
+llmtk ingest https://example.com/page --local         # URL via local html2text
+llmtk ingest report.pdf -o report.md                  # PDF via pymupdf4llm
+llmtk ingest page.html                                # local HTML file
 ```
 
 Always quote URLs (they contain `?` which zsh interprets).
@@ -43,6 +49,13 @@ Always quote URLs (they contain `?` which zsh interprets).
 Supports: mermaid, plantuml, graphviz, dot, d2, ditaa, c4plantuml, structurizr.
 Renders via Kroki.io API (zero local dependencies). Output: `{stem}-diagram-{n}.{format}`.
 
+## Ingest
+
+Converts URLs, PDFs, and HTML files to clean LLM-ready markdown.
+URLs: Jina Reader API (primary) or local html2text (`--local`).
+PDFs: pymupdf4llm (headings, tables, bold/italic). HTML: html2text.
+Pipe to clipboard: `llmtk ingest <url> | pbcopy`.
+
 ## Workflows
 
 **Sharing**: Save content as `.md` -> run push -> return URL.
@@ -57,8 +70,10 @@ Renders via Kroki.io API (zero local dependencies). Output: `{stem}-diagram-{n}.
 
 **Render diagrams**: `llmtk diagram file.md` extracts and renders all diagram code blocks. Use `--inline` to replace blocks with image references.
 
+**Ingest content**: `llmtk ingest <url-or-file> -o context.md` converts external content to markdown for LLM context.
+
 ## Setup
 
 `pip install llm-toolkit`. Requires `~/.llmtk/credentials.json` (Google OAuth).
 Enable Drive API + Docs API in GCP project. First run opens browser for consent.
-Diagrams require network (Kroki.io) but no additional auth.
+Diagrams require network (Kroki.io). Ingest requires network for URLs but works offline for PDFs/HTML.

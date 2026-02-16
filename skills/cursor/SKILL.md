@@ -1,6 +1,6 @@
 ---
 name: llm-toolkit
-description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when the user asks to share a document, convert markdown to Google Docs, push to gdoc, create a shareable version, get feedback on a doc, pull comments, pull content back from Google Docs, render diagrams from markdown, or incorporate feedback. Also applies when the user says "make this shareable", "send to Google Docs", or "render diagrams".
+description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when the user asks to share a document, convert markdown to Google Docs, push to gdoc, create a shareable version, get feedback on a doc, pull comments, pull content back from Google Docs, render diagrams from markdown, ingest a URL/PDF/HTML into markdown, or incorporate feedback. Also applies when the user says "make this shareable", "send to Google Docs", "render diagrams", "ingest this", or "convert to markdown".
 ---
 
 # LLM Toolkit
@@ -79,6 +79,24 @@ echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
 - Output files named `{stem}-diagram-{n}.{format}`
 - Ignores non-diagram code blocks (python, bash, etc.)
 
+## Ingest (`llmtk ingest`)
+
+### Convert URLs, PDFs, or HTML files to clean markdown
+
+```bash
+llmtk ingest https://example.com/page                # URL to stdout
+llmtk ingest https://example.com/page -o page.md     # URL to file
+llmtk ingest https://example.com/page --local         # skip Jina API, use local conversion
+llmtk ingest report.pdf -o report.md                  # PDF to markdown
+llmtk ingest saved-page.html                          # local HTML to markdown
+```
+
+- URLs: primary via Jina Reader API (handles JS rendering, strips nav/ads), fallback via requests + html2text with `--local`
+- PDFs: via pymupdf4llm (detects headings, tables, bold/italic, multi-column layout)
+- HTML: via html2text (preserves structure: headings, tables, lists, blockquotes)
+- Graceful handling of image-only PDFs (warning, no crash)
+- Pipe to clipboard: `llmtk ingest <url> | pbcopy`
+
 ## Workflows
 
 ### "Make this shareable" / "Push to Google Docs"
@@ -110,6 +128,12 @@ echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
 2. Use `--inline` to replace code blocks with image references for sharing
 3. Use `--format svg` for scalable vector output
 
+### "Ingest this page" / "Convert to markdown" / "Load context"
+
+1. Run `llmtk ingest <url-or-file> -o context.md`
+2. Use the output as LLM context (paste, attach, or reference in Cursor)
+3. For quick clipboard use: `llmtk ingest <url> | pbcopy`
+
 ### Full round-trip example
 
 ```
@@ -131,6 +155,10 @@ User: "sync their edits back"
 User: "render the diagrams in this doc"
 -> llmtk diagram architecture.md --output-dir ./images
 -> 4 PNGs created
+
+User: "ingest this page for context"
+-> llmtk ingest https://docs.example.com/api -o api-docs.md
+-> Clean markdown ready for LLM consumption
 ```
 
 ## Setup
@@ -143,3 +171,4 @@ If auth fails, the user needs to:
 4. Run any command once — browser opens for OAuth consent
 
 Diagram rendering requires network access (Kroki.io API) but no additional setup.
+Ingest requires network for URLs (Jina Reader API) but works offline for PDFs and HTML files.
