@@ -8,6 +8,7 @@ Usage:
     llmtk gdoc list
     llmtk diagram <file.md> [--format png|svg] [--output-dir DIR] [--inline]
     llmtk diagram --stdin --type mermaid [--format png] [--output file.png]
+    llmtk ingest <url|pdf|html> [--output file.md] [--local]
 """
 
 import argparse
@@ -142,6 +143,24 @@ def _handle_diagram(args):
         sys.exit(1)
 
 
+def _register_ingest(subparsers):
+    """Register the `ingest` tool."""
+    ingest_parser = subparsers.add_parser(
+        'ingest',
+        help='Convert URLs, PDFs, or HTML files to clean markdown for LLM context',
+    )
+    ingest_parser.add_argument('source', help='URL, PDF file, or HTML file to ingest')
+    ingest_parser.add_argument('--output', '-o', help='Write markdown to this file')
+    ingest_parser.add_argument('--local', '-l', action='store_true',
+                               help='Skip Jina Reader API; use local conversion for URLs')
+
+
+def _handle_ingest(args):
+    """Handle ingest subcommand."""
+    from llmtk.ingest.convert import ingest
+    ingest(args.source, output=args.output, local=args.local)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='llmtk',
@@ -151,6 +170,7 @@ def main():
 Tools:
   gdoc      Markdown ↔ Google Docs (push, pull, pull-content, list)
   diagram   Render diagram code blocks to images (mermaid, plantuml, graphviz, d2)
+  ingest    Convert URLs, PDFs, or HTML files to clean markdown
 
 Examples:
   llmtk gdoc push analysis.md --title "Q1 Analysis" --folder "Work"
@@ -161,7 +181,9 @@ Examples:
   llmtk diagram architecture.md
   llmtk diagram architecture.md --format svg --output-dir ./images
   llmtk diagram architecture.md --inline
-  echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
+  llmtk ingest https://example.com/page -o page.md
+  llmtk ingest report.pdf -o report.md
+  llmtk ingest page.html
         """,
     )
 
@@ -169,6 +191,8 @@ Examples:
     _register_gdoc(subparsers)
 
     _register_diagram(subparsers)
+
+    _register_ingest(subparsers)
 
     # Add future tools here:
     # _register_slides(subparsers)
@@ -180,6 +204,8 @@ Examples:
         _handle_gdoc(args)
     elif args.tool == 'diagram':
         _handle_diagram(args)
+    elif args.tool == 'ingest':
+        _handle_ingest(args)
     else:
         parser.print_help()
         sys.exit(0)
