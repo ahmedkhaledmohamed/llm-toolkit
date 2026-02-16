@@ -1,6 +1,6 @@
 ---
 name: llm-toolkit
-description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when asked to share a document, convert to Google Doc, push to gdoc, create a shareable version, pull comments, or incorporate feedback from a shared doc.
+description: Bridge LLM workflows to traditional tools using the llmtk CLI. Use when asked to share a document, convert to Google Doc, push to gdoc, create a shareable version, pull comments, pull content back, render diagrams, or incorporate feedback from a shared doc.
 ---
 
 # LLM Toolkit
@@ -10,10 +10,19 @@ CLI: `llmtk` — bridge LLM-generated content to traditional formats.
 ## Commands
 
 ```bash
+# Google Docs
 llmtk gdoc push <file.md> --title "Title" --folder "Folder"
 llmtk gdoc push --stdin --title "Title" < file.md
 llmtk gdoc pull "<google-doc-url-or-id>"
+llmtk gdoc pull-content "<url-or-id>" --output file.md
+llmtk gdoc pull-content "<url-or-id>" --update
 llmtk gdoc list
+
+# Diagrams
+llmtk diagram <file.md>                        # render all diagram blocks to PNG
+llmtk diagram <file.md> --format svg           # SVG output
+llmtk diagram <file.md> --inline               # replace code blocks with image refs
+echo "graph LR; A-->B" | llmtk diagram --stdin --type mermaid -o flow.png
 ```
 
 Always quote URLs (they contain `?` which zsh interprets).
@@ -29,9 +38,14 @@ Always quote URLs (they contain `?` which zsh interprets).
   - **Author** replied: "reply"
 ```
 
+## Diagrams
+
+Supports: mermaid, plantuml, graphviz, dot, d2, ditaa, c4plantuml, structurizr.
+Renders via Kroki.io API (zero local dependencies). Output: `{stem}-diagram-{n}.{format}`.
+
 ## Workflows
 
-**Sharing**: Save content as `.md` → run push → return URL.
+**Sharing**: Save content as `.md` -> run push -> return URL.
 
 **Feedback round-trip**:
 1. Run `llmtk gdoc pull "<url>"` to get comments
@@ -39,7 +53,12 @@ Always quote URLs (they contain `?` which zsh interprets).
 3. Summarize changes made
 4. Offer to re-push as an updated version
 
+**Sync edits back**: `llmtk gdoc pull-content "<url>" --update` overwrites original source file.
+
+**Render diagrams**: `llmtk diagram file.md` extracts and renders all diagram code blocks. Use `--inline` to replace blocks with image references.
+
 ## Setup
 
 `pip install llm-toolkit`. Requires `~/.llmtk/credentials.json` (Google OAuth).
 Enable Drive API + Docs API in GCP project. First run opens browser for consent.
+Diagrams require network (Kroki.io) but no additional auth.
