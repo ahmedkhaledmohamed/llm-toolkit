@@ -24,6 +24,8 @@ dependencies = [
     "markdown",
     "markdownify",
     "requests",
+    "html2text",
+    "pymupdf4llm",
     "google-auth-oauthlib",
     "google-api-python-client",
 ]
