@@ -2,7 +2,7 @@
 
 Bridge LLM workflows to the traditional ways of working.
 
-LLMs produce great output in markdown. The rest of the world runs on Google Docs, Slides, Confluence, and PDF. This toolkit bridges that gap.
+LLMs produce great output in markdown. The rest of the world runs on Google Docs, Slides, Confluence, and PDF. This toolkit bridges that gap and includes standalone utilities for working with coding agents.
 
 ## Install
 
@@ -63,6 +63,16 @@ Output:
 ```bash
 llmtk gdoc list
 ```
+
+---
+
+## Standalone agent utilities
+
+### `agent-tab` — Coding-agent status in terminal tabs
+
+[Agent terminal badges](tools/agent-tab/README.md) adds working, needs-input, failed and finished indicators to Cursor/VS Code terminal titles for Claude Code, Codex CLI and Cursor CLI. It is a standalone Python script with no third-party dependencies, installed separately from the `llmtk` package.
+
+The prototype has been checked on macOS. Agent-event coverage differs by CLI; see the tool's detection limits before relying on its indicators.
 
 ---
 
